@@ -69,6 +69,7 @@ def chat():
 
 
 if __name__ == '__main__':
+    port = int(os.getenv("PORT", 5000))
     print(f"\n✅ MindTherapist running with Groq (llama-3.3-70b)")
-    print(f"🌐 Open: http://localhost:5000\n")
-    app.run(debug=True, port=5000)
+    print(f"🌐 Running on port {port}\n")
+    app.run(host="0.0.0.0", port=port, debug=False)
