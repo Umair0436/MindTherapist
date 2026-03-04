@@ -1,6 +1,4 @@
-# Ignore Python environment variables
 .env
-
-# Ignore Python cache and bytecode
-__pycache__/
+__pycache__
 *.pyc
+.env

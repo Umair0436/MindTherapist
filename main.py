@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     temperature=0.9,          # More creative, less repetitive
     max_output_tokens=500,    # Longer replies
     top_p=0.95,

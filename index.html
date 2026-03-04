@@ -1,145 +1,957 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Psychotherapy Training Simulator</title>
-    <link rel="stylesheet" href="styles.css">
-    </head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindTherapist — AI Therapy Training</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FDF6EC;
+    --surface: #FFFAF3;
+    --surface2: #FFF3E0;
+    --border: #E8D5B0;
+    --border2: #F0C97A;
+    --amber: #F59E0B;
+    --amber-deep: #D97706;
+    --amber-light: #FEF3C7;
+    --orange: #EA580C;
+    --orange-light: #FFF7ED;
+    --warm-red: #DC2626;
+    --sage: #6B7C5C;
+    --sage-light: #F0F4EB;
+    --text: #2C1810;
+    --text2: #5C4033;
+    --text3: #8B6E5A;
+    --text-muted: #B5917A;
+    --patient-bg: #FFF7ED;
+    --patient-border: #FDBA74;
+    --student-bg: #F0F4EB;
+    --student-border: #A3B899;
+    --shadow-lg: 0 8px 32px rgba(44,24,16,0.12);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  .topbar {
+    height: 56px;
+    background: var(--surface);
+    border-bottom: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    box-shadow: 0 1px 8px rgba(44,24,16,0.06);
+  }
+
+  .logo { display: flex; align-items: center; gap: 10px; }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--amber) 0%, var(--orange) 100%);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .logo-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+
+  .logo-text span { color: var(--amber-deep); }
+
+  .status-badge {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 12px;
+    background: var(--amber-light);
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    font-size: 12px; font-weight: 500;
+    color: var(--amber-deep);
+  }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--amber);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 300px 1fr 280px;
+    height: calc(100vh - 56px);
+    margin-top: 56px;
+  }
+
+  /* LEFT */
+  .left-panel {
+    background: var(--surface);
+    border-right: 1.5px solid var(--border);
+    overflow-y: auto;
+    padding: 24px 20px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+
+  .left-panel::-webkit-scrollbar { width: 4px; }
+  .left-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .panel-header { display: flex; align-items: center; gap: 8px; }
+
+  .panel-icon {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    background: var(--amber-light);
+    color: var(--amber-deep);
+  }
+
+  .panel-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 15px; font-weight: 700;
+    color: var(--text);
+  }
+
+  .section-card {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+
+  .field-group { display: flex; flex-direction: column; gap: 6px; }
+
+  label {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text3);
+  }
+
+  input, textarea {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    padding: 9px 12px;
+    color: var(--text);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none; width: 100%;
+  }
+
+  input:focus, textarea:focus {
+    border-color: var(--amber);
+    box-shadow: 0 0 0 3px rgba(245,158,11,0.12);
+  }
+
+  textarea { resize: none; line-height: 1.5; }
+
+  .symptom-tags {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    min-height: 32px;
+  }
+
+  .tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px;
+    background: var(--amber-light);
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    font-size: 12px; font-weight: 500;
+    color: var(--amber-deep);
+  }
+
+  .tag .remove {
+    font-size: 14px; line-height: 1;
+    opacity: 0.6; cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .tag .remove:hover { opacity: 1; }
+
+  .tag-input-row { display: flex; gap: 6px; }
+  .tag-input-row input { flex: 1; }
+
+  .btn-add-tag {
+    padding: 9px 12px;
+    background: var(--amber); color: white;
+    border: none; border-radius: 9px;
+    cursor: pointer; font-size: 16px; font-weight: 600;
+    transition: background 0.15s; flex-shrink: 0;
+  }
+  .btn-add-tag:hover { background: var(--amber-deep); }
+
+  .tone-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+  .tone-btn {
+    padding: 7px 10px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px; font-weight: 500;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s; text-align: center;
+  }
+
+  .tone-btn:hover, .tone-btn.active {
+    background: var(--amber-light);
+    border-color: var(--amber);
+    color: var(--amber-deep); font-weight: 600;
+  }
+
+  .start-btn {
+    width: 100%; padding: 13px;
+    background: linear-gradient(135deg, var(--amber) 0%, var(--orange) 100%);
+    color: white; border: none; border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 16px rgba(234,88,12,0.3);
+    letter-spacing: 0.2px;
+  }
+
+  .start-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(234,88,12,0.4); }
+  .start-btn:active { transform: translateY(0); }
+  .start-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* CENTER */
+  .center-panel {
+    display: flex; flex-direction: column;
+    background: var(--bg); overflow: hidden;
+  }
+
+  .chat-header {
+    padding: 16px 24px;
+    background: var(--surface);
+    border-bottom: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .chat-header-left { display: flex; align-items: center; gap: 12px; }
+
+  .patient-avatar {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, #FDBA74 0%, var(--amber) 100%);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 2px 8px rgba(245,158,11,0.3);
+  }
+
+  .patient-info h3 { font-size: 14px; font-weight: 600; color: var(--text); }
+  .patient-info p { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+  .session-counter {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 12px; font-weight: 500;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .chat-messages {
+    flex: 1; overflow-y: auto;
+    padding: 24px;
+    display: flex; flex-direction: column; gap: 16px;
+    scroll-behavior: smooth;
+  }
+
+  .chat-messages::-webkit-scrollbar { width: 4px; }
+  .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .empty-state {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 12px; color: var(--text-muted);
+    text-align: center; padding: 40px;
+  }
+
+  .empty-icon {
+    font-size: 48px; opacity: 0.4;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .empty-state h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px; color: var(--text2);
+    font-weight: 400; font-style: italic;
+  }
+
+  .empty-state p { font-size: 13px; max-width: 260px; line-height: 1.6; }
+
+  .message {
+    display: flex; gap: 10px;
+    animation: fadeIn 0.3s ease;
+    max-width: 80%;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.patient { align-self: flex-start; }
+  .message.student { align-self: flex-end; flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0; margin-top: 2px;
+  }
+
+  .message.patient .msg-avatar { background: linear-gradient(135deg, #FDBA74, var(--amber)); }
+  .message.student .msg-avatar { background: linear-gradient(135deg, #86EFAC, var(--sage)); }
+
+  .msg-bubble {
+    padding: 12px 15px; border-radius: 16px;
+    font-size: 13.5px; line-height: 1.6;
+  }
+
+  .message.patient .msg-bubble {
+    background: var(--patient-bg);
+    border: 1.5px solid var(--patient-border);
+    border-top-left-radius: 4px; color: var(--text);
+  }
+
+  .message.student .msg-bubble {
+    background: var(--student-bg);
+    border: 1.5px solid var(--student-border);
+    border-top-right-radius: 4px; color: var(--text);
+  }
+
+  .msg-label {
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    margin-bottom: 4px;
+  }
+
+  .message.patient .msg-label { color: var(--orange); }
+  .message.student .msg-label { color: var(--sage); }
+
+  .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 14px 16px; }
+
+  .typing-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%; background: var(--amber);
+    animation: typing 1.2s infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typing {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  .chat-input-area {
+    padding: 16px 24px;
+    background: var(--surface);
+    border-top: 1.5px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .input-row { display: flex; gap: 10px; align-items: flex-end; }
+
+  .chat-input {
+    flex: 1; padding: 12px 16px;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    font-size: 14px; font-family: 'DM Sans', sans-serif;
+    resize: none; line-height: 1.5;
+    max-height: 120px; overflow-y: auto;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    color: var(--text);
+  }
+
+  .chat-input:focus {
+    border-color: var(--amber);
+    box-shadow: 0 0 0 3px rgba(245,158,11,0.1);
+    outline: none;
+  }
+
+  .chat-input::placeholder { color: var(--text-muted); }
+
+  .send-btn {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--amber) 0%, var(--orange) 100%);
+    border: none; border-radius: 12px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 3px 12px rgba(234,88,12,0.3);
+    flex-shrink: 0;
+  }
+
+  .send-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(234,88,12,0.4); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .end-session-btn {
+    padding: 10px 16px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    color: var(--text3);
+    font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s;
+    white-space: nowrap; flex-shrink: 0;
+  }
+
+  .end-session-btn:hover { background: #FEE2E2; border-color: #FCA5A5; color: var(--warm-red); }
+
+  /* RIGHT */
+  .right-panel {
+    background: var(--surface);
+    border-left: 1.5px solid var(--border);
+    overflow-y: auto;
+    padding: 24px 18px;
+    display: flex; flex-direction: column; gap: 18px;
+  }
+
+  .right-panel::-webkit-scrollbar { width: 4px; }
+  .right-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .report-placeholder {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 10px; text-align: center; padding: 20px;
+    color: var(--text-muted);
+  }
+
+  .report-placeholder .r-icon { font-size: 36px; opacity: 0.35; }
+  .report-placeholder p { font-size: 12.5px; line-height: 1.6; max-width: 200px; }
+
+  .report-content { display: flex; flex-direction: column; gap: 14px; }
+
+  .report-section {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 14px;
+  }
+
+  .report-section h4 {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text3); margin-bottom: 8px;
+  }
+
+  .score-row {
+    display: flex; align-items: center;
+    justify-content: space-between; margin-bottom: 8px;
+  }
+
+  .score-label { font-size: 12.5px; color: var(--text2); }
+
+  .score-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px; font-weight: 500;
+    color: var(--amber-deep);
+  }
+
+  .score-bar-track {
+    height: 5px; background: var(--border);
+    border-radius: 3px; overflow: hidden; margin-bottom: 10px;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--amber), var(--orange));
+    border-radius: 3px; transition: width 0.8s ease;
+  }
+
+  .feedback-text { font-size: 12.5px; line-height: 1.7; color: var(--text2); }
+
+  .improvement-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+
+  .improvement-list li {
+    font-size: 12px; color: var(--text2);
+    padding: 6px 10px;
+    background: var(--orange-light);
+    border-left: 3px solid var(--amber);
+    border-radius: 0 6px 6px 0; line-height: 1.5;
+  }
+
+  .btn-row { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+
+  .download-btn {
+    width: 100%; padding: 12px;
+    background: linear-gradient(135deg, var(--amber) 0%, var(--orange) 100%);
+    color: white; border: none; border-radius: 11px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 3px 12px rgba(234,88,12,0.25);
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+  }
+
+  .download-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(234,88,12,0.35); }
+  .download-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .improve-btn {
+    width: 100%; padding: 11px;
+    background: var(--bg); color: var(--amber-deep);
+    border: 1.5px solid var(--amber);
+    border-radius: 11px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+  }
+
+  .improve-btn:hover { background: var(--amber-light); }
+  .improve-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--text); color: white;
+    padding: 10px 20px; border-radius: 20px;
+    font-size: 13px; font-weight: 500;
+    transition: transform 0.3s ease;
+    z-index: 200; box-shadow: var(--shadow-lg);
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
 <body>
-    <div class="simulator-wrapper">
-        <main class="container">
-            <section class="page active" id="profile-page" role="region" aria-labelledby="profile-heading">
-                <header class="page-header">
-                    <h1 id="profile-heading">Patient Profile Setup</h1>
-                    <p class="subtitle">Configure the AI patient for your training session.</p>
-                </header>
-                
-                <form id="profile-form" class="setup-form" aria-live="polite">
-                    
-                    <div class="form-group">
-                        <label for="age">Patient Age</label>
-                        <input type="number" id="age" name="age" min="18" max="100" placeholder="18 - 100" aria-describedby="age-error" required>
-                        <p class="input-error" id="age-error" aria-hidden="true">Please enter a valid age (18-100).</p>
-                    </div>
 
-                    <div class="form-group">
-                        <label for="symptoms">Primary Symptoms</label>
-                        <select id="symptoms" name="symptoms" aria-describedby="symptoms-error" required>
-                            <option value="" disabled selected>Select primary symptoms...</option>
-                            <option value="anxiety">Anxiety Disorders</option>
-                            <option value="depression">Depression</option>
-                            <option value="trauma">Trauma/PTSD</option>
-                            <option value="addiction">Addiction Issues</option>
-                            <option value="relationships">Relationship Problems</option>
-                            <option value="other">Other</option>
-                        </select>
-                        <p class="input-error" id="symptoms-error" aria-hidden="true">Please select symptoms.</p>
-                    </div>
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon">🧠</div>
+    <div class="logo-text">Mind<span>Therapist</span></div>
+  </div>
+  <div class="status-badge" id="statusBadge">
+    <div class="status-dot"></div>
+    Ready to Begin
+  </div>
+</div>
 
-                    <div class="quick-profile-section" id="markdown-section">
-                        <h4 class="section-title">Quick Symptom Profiles:</h4>
-                        <div class="profile-buttons-group">
-                            <button type="button" class="btn btn-tag" data-profile="anxiety">Generalized Anxiety</button>
-                            <button type="button" class="btn btn-tag" data-profile="depression">Major Depression</button>
-                            <button type="button" class="btn btn-tag" data-profile="trauma">PTSD</button>
-                            <button type="button" class="btn btn-tag" data-profile="social">Social Anxiety</button>
-                            <button type="button" class="btn btn-tag" data-profile="panic">Panic Disorder</button>
-                            <button type="button" class="btn btn-tag" data-profile="bipolar">Bipolar Disorder</button>
-                        </div>
-                    </div>
+<div class="layout">
 
-                    <div class="form-group">
-                        <label for="behavior">Patient Behavior</label>
-                        <input type="text" id="behavior" name="behavior" placeholder="e.g., guarded, open, anxious, withdrawn" aria-describedby="behavior-error" required>
-                        <p class="input-error" id="behavior-error" aria-hidden="true">Please describe the patient's behavior.</p>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="tone">Communication Tone</label>
-                        <input type="text" id="tone" name="tone" placeholder="e.g., flat, hopeful, irritable, defensive" aria-describedby="tone-error" required>
-                        <p class="input-error" id="tone-error" aria-hidden="true">Please describe the communication tone.</p>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary" id="start-session-btn" aria-label="Start Training Session">
-                            Start Training Session
-                        </button>
-                        <p class="form-status-message" id="form-status" role="status" aria-live="polite">
-                            Please fill all fields to continue.
-                        </p>
-                    </div>
-                </form>
-            </section>
-
-            <section class="page" id="chat-page" role="main" aria-labelledby="session-heading">
-                <header class="page-header">
-                    <h1 id="session-heading">Therapy Session</h1>
-                    <p class="subtitle">Practice your psychotherapy skills.</p>
-                    
-                    <div class="session-progress-area">
-                        <p class="progress-label">Session Progress</p>
-                        <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                            <div class="progress-fill" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </header>
-
-                <div class="chat-container" id="chat-messages" role="log" aria-live="polite">
-                    </div>
-
-                <div class="chat-input-group">
-                    <textarea class="chat-input" id="student-input" placeholder="Type your response as a therapist..." rows="1" aria-label="Therapist Response Input"></textarea>
-                    <button class="btn btn-icon send-btn" id="send-btn" aria-label="Send Message">
-                        <span>➤</span>
-                    </button>
-                </div>
-
-                <div class="session-actions">
-                    <button class="btn btn-secondary" id="end-session-btn">End Session & Get Feedback</button>
-                </div>
-            </section>
-
-            <section class="page" id="feedback-page" role="region" aria-labelledby="feedback-heading">
-                <header class="page-header">
-                    <h1 id="feedback-heading">Performance Feedback</h1>
-                    <p class="subtitle">Review your therapy session performance.</p>
-                </header>
-
-                <div class="feedback-content">
-                    <article class="feedback-section">
-                        <h3><span class="icon">📊</span> Session Summary</h3>
-                        <div id="session-summary" class="feedback-body">
-                            </div>
-                    </article>
-
-                    <article class="feedback-section">
-                        <h3><span class="icon">✅</span> Strengths Identified</h3>
-                        <div id="strengths-feedback" class="feedback-body">
-                            </div>
-                    </article>
-
-                    <article class="feedback-section">
-                        <h3><span class="icon">💡</span> Areas for Improvement</h3>
-                        <div id="improvement-feedback" class="feedback-body">
-                            </div>
-                    </article>
-
-                    <article class="feedback-section">
-                        <h3><span class="icon">🎯</span> Professional Recommendations</h3>
-                        <div id="recommendations-feedback" class="feedback-body">
-                            </div>
-                    </article>
-                </div>
-
-                <footer class="feedback-actions">
-                    <button class="btn btn-primary" id="new-session-btn">Start New Session</button>
-                    <button class="btn btn-secondary" id="download-report-btn">Download Report</button>
-                </footer>
-            </section>
-        </main>
+  <!-- LEFT -->
+  <div class="left-panel">
+    <div class="panel-header">
+      <div class="panel-icon">👤</div>
+      <div class="panel-title">Patient Profile</div>
     </div>
 
-    <script src="script.js"></script>
+    <div class="section-card">
+      <div class="field-group">
+        <label>Patient Age</label>
+        <input type="number" id="patientAge" placeholder="e.g. 34" min="18" max="80" value="34">
+      </div>
+      <div class="field-group">
+        <label>Symptoms</label>
+        <div class="symptom-tags" id="symptomTags"></div>
+        <div class="tag-input-row">
+          <input type="text" id="symptomInput" placeholder="Type symptom, press +" onkeydown="handleSymptomKey(event)">
+          <button class="btn-add-tag" onclick="addSymptom()">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="field-group">
+        <label>Behavior</label>
+        <textarea id="behavior" rows="3" placeholder="e.g. Guarded, avoids eye contact, tends to deflect personal questions…"></textarea>
+      </div>
+      <div class="field-group">
+        <label>Tone</label>
+        <div class="tone-buttons">
+          <button class="tone-btn" onclick="selectTone(this,'Flat')">😐 Flat</button>
+          <button class="tone-btn" onclick="selectTone(this,'Hopeful')">🌤 Hopeful</button>
+          <button class="tone-btn" onclick="selectTone(this,'Irritable')">😤 Irritable</button>
+          <button class="tone-btn" onclick="selectTone(this,'Anxious')">😰 Anxious</button>
+          <button class="tone-btn" onclick="selectTone(this,'Withdrawn')">🌑 Withdrawn</button>
+          <button class="tone-btn" onclick="selectTone(this,'Tearful')">😢 Tearful</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="start-btn" id="startBtn" onclick="startSession()">▶ &nbsp;Start Session</button>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center-panel">
+    <div class="chat-header">
+      <div class="chat-header-left">
+        <div class="patient-avatar">🧑</div>
+        <div class="patient-info">
+          <h3 id="chatPatientName">Waiting for Session...</h3>
+          <p id="chatPatientInfo">Configure patient profile to begin</p>
+        </div>
+      </div>
+      <div class="session-counter" id="sessionCounter">💬 0 exchanges</div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">🩺</div>
+        <h3>Begin your session</h3>
+        <p>Set up the patient profile on the left, then start the simulation to practice psychotherapy.</p>
+      </div>
+    </div>
+
+    <div class="chat-input-area">
+      <div class="input-row">
+        <textarea class="chat-input" id="chatInput" rows="1"
+          placeholder="Type your response as the therapist… (Enter to send)"
+          onkeydown="handleChatKey(event)"
+          oninput="autoResize(this)"
+          disabled></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>➤</button>
+        <button class="end-session-btn" id="endBtn" onclick="endSession()" disabled>End Session</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel">
+    <div class="panel-header">
+      <div class="panel-icon">📋</div>
+      <div class="panel-title">Session Report</div>
+    </div>
+
+    <div id="reportPlaceholder" class="report-placeholder">
+      <div class="r-icon">📊</div>
+      <p>Your performance feedback and improvement tips will appear here after the session ends.</p>
+    </div>
+
+    <div id="reportContent" class="report-content" style="display:none;"></div>
+
+    <div class="btn-row">
+      <button class="download-btn" id="downloadBtn" onclick="downloadReport()" disabled>⬇ Download Report</button>
+      <button class="improve-btn" id="improveBtn" onclick="improveSession()" disabled>✦ Improve & Retry</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API_BASE = 'http://localhost:5000';
+
+  const state = {
+    symptoms: [], selectedTone: '',
+    conversationHistory: [], sessionActive: false,
+    patientProfile: null, messageCount: 0, feedbackData: null
+  };
+
+  ['Depression', 'Anxiety', 'Insomnia', 'Low self-worth'].forEach(s => addSymptomTag(s));
+
+  function addSymptomTag(sym) {
+    if (!sym.trim() || state.symptoms.includes(sym.trim())) return;
+    state.symptoms.push(sym.trim());
+    renderTags();
+  }
+
+  function addSymptom() {
+    const inp = document.getElementById('symptomInput');
+    addSymptomTag(inp.value); inp.value = '';
+  }
+
+  function handleSymptomKey(e) {
+    if (e.key === 'Enter' || e.key === '+') { e.preventDefault(); addSymptom(); }
+  }
+
+  function removeSymptom(sym) {
+    state.symptoms = state.symptoms.filter(s => s !== sym); renderTags();
+  }
+
+  function renderTags() {
+    document.getElementById('symptomTags').innerHTML = state.symptoms.map(s =>
+      `<span class="tag">${s} <span class="remove" onclick="removeSymptom('${s}')">×</span></span>`
+    ).join('');
+  }
+
+  function selectTone(btn, tone) {
+    document.querySelectorAll('.tone-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.selectedTone = tone;
+  }
+
+  async function callBackend(messages, systemPrompt) {
+    try {
+      const res = await fetch(`${API_BASE}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages, system_prompt: systemPrompt })
+      });
+      const data = await res.json();
+      if (data.error) { showToast('Error: ' + data.error); return null; }
+      return data.reply;
+    } catch {
+      showToast('Cannot connect to server. Is app.py running?');
+      return null;
+    }
+  }
+
+  async function startSession() {
+    const age = parseInt(document.getElementById('patientAge').value) || 34;
+    const behavior = document.getElementById('behavior').value.trim() || 'Guarded, avoids eye contact';
+    const tone = state.selectedTone || 'Flat';
+    if (state.symptoms.length === 0) { showToast('Add at least one symptom'); return; }
+
+    state.patientProfile = { age, symptoms: [...state.symptoms], behavior, tone };
+    state.conversationHistory = []; state.sessionActive = true;
+    state.messageCount = 0; state.feedbackData = null;
+
+    document.getElementById('chatMessages').innerHTML = '';
+    document.getElementById('chatPatientName').textContent = `Patient, Age ${age}`;
+    document.getElementById('chatPatientInfo').textContent = `${tone} tone · ${state.symptoms.slice(0,2).join(', ')}`;
+    document.getElementById('chatInput').disabled = false;
+    document.getElementById('sendBtn').disabled = false;
+    document.getElementById('endBtn').disabled = false;
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('statusBadge').innerHTML = '<div class="status-dot"></div> Session Active';
+    document.getElementById('reportPlaceholder').style.display = 'flex';
+    document.getElementById('reportContent').style.display = 'none';
+    document.getElementById('downloadBtn').disabled = true;
+    document.getElementById('improveBtn').disabled = true;
+
+    showTyping();
+
+    const systemPrompt = `You are an AI patient for psychotherapy training.
+Profile: Age ${age}, Symptoms: ${state.symptoms.join(', ')}, Behavior: ${behavior}, Tone: ${tone}.
+- Respond ONLY as the patient. At least 3-5 sentences.
+- Include one clear emotion (anxious, sad, fearful, hopeless).
+- Include one physical sensation (heavy chest, trembling hands, tight stomach).
+- Show hesitation ("I don't know…", "maybe…", "it feels strange…").
+- Never act like an AI or give advice.`;
+
+    const reply = await callBackend([{ role: 'student', message: 'Please begin the session by introducing yourself as this patient.' }], systemPrompt);
+    hideTyping();
+
+    if (reply) {
+      state.conversationHistory.push({ role: 'patient', message: reply });
+      addMessage('patient', reply); updateCounter();
+    }
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text || !state.sessionActive) return;
+
+    input.value = ''; input.style.height = 'auto';
+    document.getElementById('sendBtn').disabled = true;
+
+    state.conversationHistory.push({ role: 'student', message: text });
+    addMessage('student', text); state.messageCount++; updateCounter();
+
+    showTyping();
+
+    const p = state.patientProfile;
+    const systemPrompt = `You are an AI patient for psychotherapy training.
+Profile: Age ${p.age}, Symptoms: ${p.symptoms.join(', ')}, Behavior: ${p.behavior}, Tone: ${p.tone}.
+Respond ONLY as the patient. Min 3 sentences. Include emotion, physical sensation, hesitation. No advice.`;
+
+    const reply = await callBackend(state.conversationHistory, systemPrompt);
+    hideTyping();
+
+    if (reply) {
+      state.conversationHistory.push({ role: 'patient', message: reply });
+      addMessage('patient', reply);
+    }
+
+    document.getElementById('sendBtn').disabled = false;
+    input.focus();
+  }
+
+  function handleChatKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+
+  async function endSession() {
+    if (!state.sessionActive) return;
+    state.sessionActive = false;
+
+    document.getElementById('chatInput').disabled = true;
+    document.getElementById('sendBtn').disabled = true;
+    document.getElementById('endBtn').disabled = true;
+    document.getElementById('statusBadge').innerHTML = '<div class="status-dot" style="background:#10B981"></div> Generating Feedback…';
+
+    showTyping();
+
+    const p = state.patientProfile;
+    const convText = state.conversationHistory.map(m => `${m.role.toUpperCase()}: ${m.message}`).join('\n\n');
+
+    const feedbackPrompt = `Patient: Age ${p.age}, Symptoms: ${p.symptoms.join(', ')}, Behavior: ${p.behavior}, Tone: ${p.tone}.
+Conversation:
+${convText}
+
+Analyze the student therapist. Return ONLY this JSON (no markdown):
+{"overall_score":75,"rapport_score":80,"technique_score":70,"ethics_score":85,"summary":"2-3 sentences","strengths":["s1","s2","s3"],"improvements":["i1","i2","i3"],"next_steps":"one tip"}`;
+
+    const raw = await callBackend([{ role: 'student', message: feedbackPrompt }], null);
+    hideTyping();
+
+    let feedback = null;
+    if (raw) {
+      try { feedback = JSON.parse(raw.replace(/```json|```/g, '').trim()); }
+      catch {
+        feedback = {
+          overall_score: 70, rapport_score: 72, technique_score: 68, ethics_score: 80,
+          summary: raw.substring(0, 250),
+          strengths: ['Active listening observed', 'Professional tone maintained', 'Showed empathy'],
+          improvements: ['Use more open-ended questions', 'Allow silence and pauses', 'Reflect emotions back more'],
+          next_steps: 'Focus on reflective listening in the next session.'
+        };
+      }
+    }
+
+    state.feedbackData = feedback;
+    renderReport(feedback);
+    document.getElementById('downloadBtn').disabled = false;
+    document.getElementById('improveBtn').disabled = false;
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('statusBadge').innerHTML = '<div class="status-dot" style="background:#10B981;animation:none"></div> Session Complete';
+  }
+
+  function renderReport(f) {
+    if (!f) return;
+    document.getElementById('reportPlaceholder').style.display = 'none';
+    const rc = document.getElementById('reportContent');
+    rc.style.display = 'flex';
+    rc.innerHTML = `
+      <div class="report-section">
+        <h4>📊 Scores</h4>
+        ${sb('Overall', f.overall_score)}${sb('Rapport', f.rapport_score)}
+        ${sb('Technique', f.technique_score)}${sb('Ethics', f.ethics_score)}
+      </div>
+      <div class="report-section">
+        <h4>🗒 Summary</h4>
+        <p class="feedback-text">${f.summary}</p>
+      </div>
+      <div class="report-section">
+        <h4>✅ Strengths</h4>
+        <ul class="improvement-list">
+          ${(f.strengths||[]).map(s=>`<li style="border-left-color:var(--sage);background:var(--sage-light)">${s}</li>`).join('')}
+        </ul>
+      </div>
+      <div class="report-section">
+        <h4>🎯 Improvements</h4>
+        <ul class="improvement-list">${(f.improvements||[]).map(s=>`<li>${s}</li>`).join('')}</ul>
+      </div>
+      <div class="report-section">
+        <h4>➡ Next Steps</h4>
+        <p class="feedback-text">${f.next_steps}</p>
+      </div>`;
+  }
+
+  function sb(label, score) {
+    return `<div class="score-row"><span class="score-label">${label}</span><span class="score-value">${score}/100</span></div>
+    <div class="score-bar-track"><div class="score-bar-fill" style="width:${score}%"></div></div>`;
+  }
+
+  function downloadReport() {
+    if (!state.feedbackData) return;
+    const f = state.feedbackData; const p = state.patientProfile;
+    const text = `MINDTHERAPIST — SESSION REPORT\n================================\nDate: ${new Date().toLocaleDateString()}\nPatient: Age ${p.age} | Tone: ${p.tone}\nSymptoms: ${p.symptoms.join(', ')}\nExchanges: ${state.messageCount}\n\nSCORES\n------\nOverall:   ${f.overall_score}/100\nRapport:   ${f.rapport_score}/100\nTechnique: ${f.technique_score}/100\nEthics:    ${f.ethics_score}/100\n\nSUMMARY\n-------\n${f.summary}\n\nSTRENGTHS\n---------\n${(f.strengths||[]).map((s,i)=>`${i+1}. ${s}`).join('\n')}\n\nAREAS FOR IMPROVEMENT\n---------------------\n${(f.improvements||[]).map((s,i)=>`${i+1}. ${s}`).join('\n')}\n\nNEXT STEPS\n----------\n${f.next_steps}\n\nCONVERSATION TRANSCRIPT\n-----------------------\n${state.conversationHistory.map(m=>`${m.role.toUpperCase()}: ${m.message}`).join('\n\n')}`;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+    a.download = `mindtherapist_report_${Date.now()}.txt`;
+    a.click(); showToast('Report downloaded!');
+  }
+
+  function improveSession() {
+    document.getElementById('chatMessages').innerHTML = `<div class="empty-state"><div class="empty-icon">🩺</div><h3>Try again</h3><p>Profile saved. Click Start Session to retry with the same patient.</p></div>`;
+    state.conversationHistory = []; state.messageCount = 0;
+    state.sessionActive = false; state.feedbackData = null;
+    document.getElementById('reportPlaceholder').style.display = 'flex';
+    document.getElementById('reportContent').style.display = 'none';
+    document.getElementById('downloadBtn').disabled = true;
+    document.getElementById('improveBtn').disabled = true;
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('statusBadge').innerHTML = '<div class="status-dot"></div> Ready to Begin';
+    document.getElementById('chatPatientName').textContent = 'Waiting for Session...';
+    document.getElementById('chatPatientInfo').textContent = 'Configure patient profile to begin';
+    updateCounter(); showToast('Ready for a new attempt!');
+  }
+
+  function showTyping() {
+    const c = document.getElementById('chatMessages');
+    const el = document.createElement('div');
+    el.className = 'message patient'; el.id = 'typingIndicator';
+    el.innerHTML = `<div class="msg-avatar">🧑</div>
+      <div class="msg-bubble" style="background:var(--patient-bg);border:1.5px solid var(--patient-border);">
+        <div class="typing-indicator">
+          <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+        </div>
+      </div>`;
+    c.appendChild(el); c.scrollTop = c.scrollHeight;
+  }
+
+  function hideTyping() {
+    const t = document.getElementById('typingIndicator');
+    if (t) t.remove();
+  }
+
+  function addMessage(role, text) {
+    const c = document.getElementById('chatMessages');
+    const el = document.createElement('div');
+    el.className = `message ${role}`;
+    el.innerHTML = `<div class="msg-avatar">${role==='patient'?'🧑':'🩺'}</div>
+      <div class="msg-bubble">
+        <div class="msg-label">${role==='patient'?'Patient':'You (Therapist)'}</div>${text}
+      </div>`;
+    c.appendChild(el); c.scrollTop = c.scrollHeight;
+  }
+
+  function updateCounter() {
+    document.getElementById('sessionCounter').textContent = `💬 ${state.messageCount} exchanges`;
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+  }
+</script>
 </body>
 </html>
