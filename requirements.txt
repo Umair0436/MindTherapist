@@ -1,10 +1,8 @@
-langgraph
-langchain
-openai                  # Agar OpenAI GPT API use karni hai
-python-dotenv           # .env file se API keys load karne ke liye
-requests                # Agar API call karni ho
-chromadb                # Vector DB (optional, memory ke liye)
 flask
 flask-cors
 requests
 python-dotenv
+langchain-google-genai
+langchain
+langgraph
+groq
