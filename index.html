@@ -669,8 +669,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  const GROQ_API_KEY = 'GROQ_KEY_YAHAN_DAALO';
-  const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+  const API_BASE = '';
 
   const state = {
     symptoms: [], selectedTone: '',
@@ -713,30 +712,14 @@
 
   async function callBackend(messages, systemPrompt) {
     try {
-      const groqMessages = [];
-      if (systemPrompt) groqMessages.push({ role: 'system', content: systemPrompt });
-      for (const m of messages) {
-        groqMessages.push({
-          role: m.role === 'patient' ? 'assistant' : 'user',
-          content: m.message
-        });
-      }
-      const res = await fetch(GROQ_URL, {
+      const res = await fetch(`${API_BASE}/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${GROQ_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: groqMessages,
-          temperature: 0.9,
-          max_tokens: 500
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages, system_prompt: systemPrompt })
       });
       const data = await res.json();
-      if (data.error) { showToast('Error: ' + data.error.message); return null; }
-      return data.choices[0].message.content;
+      if (data.error) { showToast('Error: ' + data.error); return null; }
+      return data.reply;
     } catch(e) {
       showToast('Connection error: ' + e.message);
       return null;
