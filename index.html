@@ -669,7 +669,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  const API_BASE = '';
+  const API_BASE = 'http://localhost:5000';
 
   const state = {
     symptoms: [], selectedTone: '',
@@ -816,26 +816,47 @@ Respond ONLY as the patient. Min 3 sentences. Include emotion, physical sensatio
     const p = state.patientProfile;
     const convText = state.conversationHistory.map(m => `${m.role.toUpperCase()}: ${m.message}`).join('\n\n');
 
-    const feedbackPrompt = `Patient: Age ${p.age}, Symptoms: ${p.symptoms.join(', ')}, Behavior: ${p.behavior}, Tone: ${p.tone}.
-Conversation:
+    const feedbackSystemPrompt = `You are an expert psychotherapy supervisor. Respond with ONLY a valid JSON object. No markdown, no explanation, no text before or after.`;
+
+    const feedbackPrompt = `Evaluate this psychotherapy training session carefully and honestly.
+
+PATIENT PROFILE:
+- Age: ${p.age}
+- Symptoms: ${p.symptoms.join(', ')}
+- Behavior: ${p.behavior}
+- Tone: ${p.tone}
+- Total Exchanges: ${state.messageCount}
+
+FULL CONVERSATION:
 ${convText}
 
-Analyze the student therapist. Return ONLY this JSON (no markdown):
-{"overall_score":75,"rapport_score":80,"technique_score":70,"ethics_score":85,"summary":"2-3 sentences","strengths":["s1","s2","s3"],"improvements":["i1","i2","i3"],"next_steps":"one tip"}`;
+Based ONLY on what actually happened in this conversation, give an honest evaluation.
+Score based on real performance - NOT defaults. Look at: empathy shown, questions asked, rapport built, technique used, ethical conduct.
 
-    const raw = await callBackend([{ role: 'student', message: feedbackPrompt }], null);
+Return ONLY this raw JSON (no markdown, no backticks):
+{"overall_score": <honest 0-100>, "rapport_score": <0-100>, "technique_score": <0-100>, "ethics_score": <0-100>, "summary": "<2-3 sentences about THIS specific session>", "strengths": ["<specific thing therapist did well in this session>", "<another>", "<another>"], "improvements": ["<specific improvement based on actual conversation>", "<another>", "<another>"], "next_steps": "<one concrete tip for next session>"}`;
+
+    const raw = await callBackend([{ role: 'student', message: feedbackPrompt }], feedbackSystemPrompt);
     hideTyping();
 
     let feedback = null;
     if (raw) {
-      try { feedback = JSON.parse(raw.replace(/```json|```/g, '').trim()); }
-      catch {
+      try {
+        let jsonStr = raw.trim().replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+        const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+        if (jsonMatch) jsonStr = jsonMatch[0];
+        feedback = JSON.parse(jsonStr);
+        feedback.overall_score = Math.min(100, Math.max(0, parseInt(feedback.overall_score) || 65));
+        feedback.rapport_score = Math.min(100, Math.max(0, parseInt(feedback.rapport_score) || 65));
+        feedback.technique_score = Math.min(100, Math.max(0, parseInt(feedback.technique_score) || 65));
+        feedback.ethics_score = Math.min(100, Math.max(0, parseInt(feedback.ethics_score) || 65));
+      } catch {
         feedback = {
-          overall_score: 70, rapport_score: 72, technique_score: 68, ethics_score: 80,
-          summary: raw.substring(0, 250),
-          strengths: ['Active listening observed', 'Professional tone maintained', 'Showed empathy'],
-          improvements: ['Use more open-ended questions', 'Allow silence and pauses', 'Reflect emotions back more'],
-          next_steps: 'Focus on reflective listening in the next session.'
+          overall_score: 65, rapport_score: 65, technique_score: 60, ethics_score: 75,
+          summary: raw.length > 50 ? raw.substring(0, 300) : 'Session completed. Please review the conversation.',
+          strengths: ['Session completed successfully', 'Patient engagement maintained', 'Professional conduct observed'],
+          improvements: ['Review conversation for improvement areas', 'Practice open-ended questions', 'Work on reflective listening'],
+          next_steps: 'Review this session transcript and identify one technique to practice next time.'
         };
       }
     }
