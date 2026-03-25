@@ -709,7 +709,6 @@
     btn.classList.add('active');
     state.selectedTone = tone;
   }
-
   async function callBackend(messages, systemPrompt) {
     try {
       const res = await fetch(`${API_BASE}/direct-chat`, {
