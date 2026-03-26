@@ -163,8 +163,8 @@ python -m pip install -r requirements.txt
 ## 👤 Author
 
 **Muhammad Umair**
-AI Developer — YumTech, Lahore
-[GitHub](https://github.com/Umair0436) • [LinkedIn](https://linkedin.com/in/muhammad-umair-dev)
+AI Developer — Lahore
+[GitHub](https://github.com/Umair0436)
 
 ---
 
