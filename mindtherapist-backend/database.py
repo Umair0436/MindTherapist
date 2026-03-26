@@ -2,15 +2,13 @@ from sqlalchemy import create_engine, Column, String, Integer, Boolean, Text, Da
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
+import os
 
-# SQLite file will be created at this path — mindtherapist.db in the project folder
-DATABASE_URL = "sqlite:///./mindtherapist.db"
+# PostgreSQL on Railway (falls back to SQLite for local development)
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./mindtherapist.db")
 
 # Engine = actual connection to the database
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False}  # Required for SQLite with FastAPI
-)
+engine = create_engine(DATABASE_URL)
 
 Base = declarative_base()
 
