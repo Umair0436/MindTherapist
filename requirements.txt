@@ -7,3 +7,5 @@ langchain
 langgraph
 groq
 langchain-groq
+fastapi
+uvicorn
