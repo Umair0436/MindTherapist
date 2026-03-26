@@ -5,7 +5,7 @@ from datetime import datetime
 import os
 
 # PostgreSQL on Railway (falls back to SQLite for local development)
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./mindtherapist.db")
+DATABASE_URL = os.getenv("DATABASE_PUBLIC_URL", "sqlite:///./mindtherapist.db")
 
 # Fix for Railway — postgres:// to postgresql://
 if DATABASE_URL.startswith("postgres://"):
