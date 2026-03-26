@@ -7,6 +7,10 @@ import os
 # PostgreSQL on Railway (falls back to SQLite for local development)
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./mindtherapist.db")
 
+# Fix for Railway — postgres:// to postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 # Engine = actual connection to the database
 engine = create_engine(DATABASE_URL)
 
