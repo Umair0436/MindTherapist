@@ -9,3 +9,4 @@ groq
 langchain-groq
 fastapi
 uvicorn
+reportlab
