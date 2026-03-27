@@ -674,7 +674,8 @@
   const state = {
     symptoms: [], selectedTone: '',
     conversationHistory: [], sessionActive: false,
-    patientProfile: null, messageCount: 0, feedbackData: null
+    patientProfile: null, messageCount: 0, feedbackData: null,
+    sessionId: null  // ✅ Session ID store karne ke liye
   };
 
   ['Depression', 'Anxiety', 'Insomnia', 'Low self-worth'].forEach(s => addSymptomTag(s));
@@ -709,6 +710,7 @@
     btn.classList.add('active');
     state.selectedTone = tone;
   }
+
   async function callBackend(messages, systemPrompt) {
     try {
       const res = await fetch(`${API_BASE}/direct-chat`, {
@@ -734,6 +736,25 @@
     state.patientProfile = { age, symptoms: [...state.symptoms], behavior, tone };
     state.conversationHistory = []; state.sessionActive = true;
     state.messageCount = 0; state.feedbackData = null;
+    state.sessionId = null;
+
+    // ✅ Backend mein session start karo — database mein save hoga
+    try {
+      const sessionRes = await fetch(`${API_BASE}/session/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          age: age,
+          symptoms: state.symptoms,
+          behavior: behavior,
+          tone: tone
+        })
+      });
+      const sessionData = await sessionRes.json();
+      state.sessionId = sessionData.session_id;
+    } catch(e) {
+      console.error('Session start error:', e);
+    }
 
     document.getElementById('chatMessages').innerHTML = '';
     document.getElementById('chatPatientName').textContent = `Patient, Age ${age}`;
@@ -804,6 +825,19 @@ Respond ONLY as the patient. Min 3 sentences. Include emotion, physical sensatio
   async function endSession() {
     if (!state.sessionActive) return;
     state.sessionActive = false;
+
+    // ✅ Backend mein session end karo — database update hoga
+    if (state.sessionId) {
+      try {
+        await fetch(`${API_BASE}/session/end`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: state.sessionId })
+        });
+      } catch(e) {
+        console.error('Session end error:', e);
+      }
+    }
 
     document.getElementById('chatInput').disabled = true;
     document.getElementById('sendBtn').disabled = true;
@@ -918,6 +952,7 @@ Return ONLY this raw JSON (no markdown, no backticks):
     document.getElementById('chatMessages').innerHTML = `<div class="empty-state"><div class="empty-icon">🩺</div><h3>Try again</h3><p>Profile saved. Click Start Session to retry with the same patient.</p></div>`;
     state.conversationHistory = []; state.messageCount = 0;
     state.sessionActive = false; state.feedbackData = null;
+    state.sessionId = null;
     document.getElementById('reportPlaceholder').style.display = 'flex';
     document.getElementById('reportContent').style.display = 'none';
     document.getElementById('downloadBtn').disabled = true;
