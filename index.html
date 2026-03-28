@@ -675,7 +675,7 @@
     symptoms: [], selectedTone: '',
     conversationHistory: [], sessionActive: false,
     patientProfile: null, messageCount: 0, feedbackData: null,
-    sessionId: null  // ✅ Session ID store karne ke liye
+    sessionId: null
   };
 
   ['Depression', 'Anxiety', 'Insomnia', 'Low self-worth'].forEach(s => addSymptomTag(s));
@@ -738,17 +738,11 @@
     state.messageCount = 0; state.feedbackData = null;
     state.sessionId = null;
 
-    // ✅ Backend mein session start karo — database mein save hoga
     try {
       const sessionRes = await fetch(`${API_BASE}/session/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          age: age,
-          symptoms: state.symptoms,
-          behavior: behavior,
-          tone: tone
-        })
+        body: JSON.stringify({ age, symptoms: state.symptoms, behavior, tone })
       });
       const sessionData = await sessionRes.json();
       state.sessionId = sessionData.session_id;
@@ -773,11 +767,18 @@
 
     const systemPrompt = `You are an AI patient for psychotherapy training.
 Profile: Age ${age}, Symptoms: ${state.symptoms.join(', ')}, Behavior: ${behavior}, Tone: ${tone}.
-- Respond ONLY as the patient. At least 3-5 sentences.
+- Respond ONLY as the patient.
 - Include one clear emotion (anxious, sad, fearful, hopeless).
 - Include one physical sensation (heavy chest, trembling hands, tight stomach).
-- Show hesitation ("I don't know…", "maybe…", "it feels strange…").
-- Never act like an AI or give advice.`;
+- Show hesitation ("I don't know...", "maybe...", "it feels strange...").
+- Vary your response length naturally based on the emotional moment:
+  If withdrawn or shutting down: 1-2 short sentences.
+  If cautiously opening up: 2-3 sentences.
+  If explaining something painful: 3-4 sentences.
+  Never write the same length twice in a row.
+- Never act like an AI or give advice.
+- Never use bold, asterisks, or any markdown formatting. Speak in plain natural sentences only.
+- Never use stage directions or actions like *pauses*, *sighs*, *looks down*. Speak only in words.`;
 
     const reply = await callBackend([{ role: 'student', message: 'Please begin the session by introducing yourself as this patient.' }], systemPrompt);
     hideTyping();
@@ -804,7 +805,11 @@ Profile: Age ${age}, Symptoms: ${state.symptoms.join(', ')}, Behavior: ${behavio
     const p = state.patientProfile;
     const systemPrompt = `You are an AI patient for psychotherapy training.
 Profile: Age ${p.age}, Symptoms: ${p.symptoms.join(', ')}, Behavior: ${p.behavior}, Tone: ${p.tone}.
-Respond ONLY as the patient. Min 3 sentences. Include emotion, physical sensation, hesitation. No advice.`;
+- Respond ONLY as the patient.
+- Include one emotion word and one physical sensation.
+- Always include hesitation or self-doubt.
+- Vary your response length naturally: 1-2 sentences if shutting down, 2-3 if deflecting, 3-4 if opening up. Never same length twice in a row.
+- No advice. No markdown. No asterisk actions like *pauses* or *sighs*. Plain sentences only.`;
 
     const reply = await callBackend(state.conversationHistory, systemPrompt);
     hideTyping();
@@ -826,7 +831,6 @@ Respond ONLY as the patient. Min 3 sentences. Include emotion, physical sensatio
     if (!state.sessionActive) return;
     state.sessionActive = false;
 
-    // ✅ Backend mein session end karo — database update hoga
     if (state.sessionId) {
       try {
         await fetch(`${API_BASE}/session/end`, {
