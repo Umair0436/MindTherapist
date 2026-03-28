@@ -13,8 +13,7 @@ llm = ChatGroq(
     model="llama-3.3-70b-versatile",
     api_key=os.getenv("GROQ_API_KEY"),
     temperature=0.9,
-    max_tokens=500,        # ← max_output_tokens se change kiya
-    top_p=0.95,
+    max_tokens=500,
 )
 
 # -----------------------------
@@ -54,6 +53,7 @@ Instructions:
   Never write the same length twice in a row.
 - Stay consistent with depression/anxiety patient profile.
 - Never act like an AI or give advice.
+- Never use bold, asterisks, or any markdown formatting. Speak in plain natural sentences only.
 """
     response = llm.invoke(prompt)
     initial_message = response.content if hasattr(response, "content") else str(response)
@@ -102,6 +102,7 @@ Instructions:
   • If you're opening up or describing something painful: 3–5 sentences.
   Never write the same length twice in a row. React to the student's tone, not just their words.
 - Do not provide advice or AI-style explanations.
+- Never use bold, asterisks, or any markdown formatting. Speak in plain natural sentences only.
 """
     response = llm.invoke(prompt)
     patient_reply = response.content if hasattr(response, "content") else str(response)
