@@ -10,12 +10,11 @@ load_dotenv()
 # Initialize Groq LLM
 # -----------------------------
 llm = ChatGroq(
-    model="llama3-70b-8192",           # ← Tumhara Groq model
-    api_key=os.getenv("GROQ_API_KEY"), # ← .env me set variable
-    temperature=0.9,          # More creative, less repetitive
-    max_output_tokens=500,    # Longer replies
+    model="llama-3.3-70b-versatile",
+    api_key=os.getenv("GROQ_API_KEY"),
+    temperature=0.9,
+    max_tokens=500,        # ← max_output_tokens se change kiya
     top_p=0.95,
-    top_k=60                  # Increased from 40 for more variation
 )
 
 # -----------------------------
