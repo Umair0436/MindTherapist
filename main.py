@@ -15,7 +15,7 @@ llm = ChatGroq(
     temperature=0.9,          # More creative, less repetitive
     max_output_tokens=500,    # Longer replies
     top_p=0.95,
-    top_k=40
+    top_k=60                  # Increased from 40 for more variation
 )
 
 # -----------------------------
@@ -45,14 +45,16 @@ Tone: {profile['tone']}
 Instructions:
 - Respond ONLY as the patient.
 - Every response MUST:
-  1. Be **at least 3–5 full sentences** (never short).
-  2. Contain **one clear emotion** (e.g., anxious, sad, fearful, hopeless, relieved).
-  3. Include **one physical sensation** (e.g., heavy chest, trembling hands, headache, tight stomach).
-  4. Show **hesitation or self-doubt markers** ("I don’t know…", "maybe…", "it feels strange…").
+  1. Contain **one clear emotion** (e.g., anxious, sad, fearful, hopeless, relieved).
+  2. Include **one physical sensation** (e.g., heavy chest, trembling hands, headache, tight stomach).
+  3. Show **hesitation or self-doubt markers** ("I don't know…", "maybe…", "it feels strange…").
+- Vary your response length naturally based on the emotional moment:
+  • If withdrawn or shutting down: 1–2 short sentences.
+  • If cautiously opening up: 2–3 sentences.
+  • If explaining something painful: 3–4 sentences.
+  Never write the same length twice in a row.
 - Stay consistent with depression/anxiety patient profile.
 - Never act like an AI or give advice.
-- Example response:
-  "I don’t really know how to explain it… maybe I’m just broken. My chest feels so heavy, like a weight pressing down, and it makes me feel hopeless. I keep thinking nothing will ever change, and that thought makes me so scared and tired."
 """
     response = llm.invoke(prompt)
     initial_message = response.content if hasattr(response, "content") else str(response)
@@ -93,11 +95,13 @@ Conversation so far:
 
 Instructions:
 - Respond ONLY as the patient.
-- Absolutely ensure:
-  • Response length = minimum 3 sentences (better 4–6).
-  • Must include one **emotion word** (e.g., sad, anxious, hopeless).
-  • Must include one **physical sensation** (e.g., chest tightness, fatigue, trembling hands).
-  • Must include hesitation/self-doubt phrases (“I don’t know…”, “maybe…”, “it feels strange…”).
+- Every response must include one **emotion word** (e.g., sad, anxious, hopeless) and one **physical sensation** (e.g., chest tightness, fatigue, trembling hands).
+- Always include hesitation or self-doubt ("I don't know…", "maybe…", "it feels strange…").
+- Vary your response length naturally based on the emotional moment:
+  • If the student said something that caught you off guard or you're shutting down: 1–2 short sentences.
+  • If you're cautiously processing or deflecting: 2–3 sentences.
+  • If you're opening up or describing something painful: 3–5 sentences.
+  Never write the same length twice in a row. React to the student's tone, not just their words.
 - Do not provide advice or AI-style explanations.
 """
     response = llm.invoke(prompt)
