@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from sqlalchemy.orm import Session as DBSession
@@ -48,7 +48,6 @@ def get_groq_response(messages, system_prompt):
     if system_prompt:
         groq_messages.append({"role": "system", "content": system_prompt})
 
-    # Convert our message format to Groq's expected format
     for m in messages:
         role = "assistant" if m['role'] == 'patient' else "user"
         groq_messages.append({"role": role, "content": m['message']})
@@ -73,14 +72,12 @@ def get_groq_response(messages, system_prompt):
 
 
 def extract_json_from_reply(reply: str) -> dict:
-    """Safely extract JSON from Groq reply — handles extra text around JSON"""
-    # Try direct parse first
+    """Safely extract JSON from Groq reply"""
     try:
         return json.loads(reply)
     except json.JSONDecodeError:
         pass
 
-    # Extract JSON block using regex as fallback
     match = re.search(r'\{.*\}', reply, re.DOTALL)
     if match:
         try:
@@ -92,11 +89,10 @@ def extract_json_from_reply(reply: str) -> dict:
 
 
 def draw_wrapped_text(pdf, text, x, y, page_height, max_width=450, line_height=16):
-    """Draw long text with word wrap — handles page overflow"""
+    """Draw long text with word wrap"""
     from reportlab.lib.utils import simpleSplit
     lines = simpleSplit(text, "Helvetica", 11, max_width)
     for line in lines:
-        # Start a new page if content overflows the bottom
         if y < 60:
             pdf.showPage()
             pdf.setFont("Helvetica", 11)
@@ -107,7 +103,7 @@ def draw_wrapped_text(pdf, text, x, y, page_height, max_width=450, line_height=1
 
 
 def check_y(pdf, y, page_height, margin=60):
-    """If y position is too low, create a new page and reset y"""
+    """Create new page if y too low"""
     if y < margin:
         pdf.showPage()
         return page_height - 50
@@ -132,28 +128,24 @@ class EndSession(BaseModel):
 class DirectChat(BaseModel):
     messages: list
     system_prompt: str
+    session_id: Optional[str] = None  # Optional — used to save messages to DB
 
 
 # ---- Endpoints ----
 
 @app.get("/")
 def root():
-    """Serve the frontend HTML file"""
     return FileResponse("../index.html")
 
 
 @app.post("/session/start")
 def start_session(profile: PatientProfile, db: DBSession = Depends(get_db)):
-    """
-    Before: saved into sessions{} dictionary in memory
-    Now: INSERT into the sessions table in SQLite
-    """
     session_id = str(uuid.uuid4())
 
     new_session = TherapySession(
         id=session_id,
         age=profile.age,
-        symptoms=json.dumps(profile.symptoms),  # Convert list to JSON string for storage
+        symptoms=json.dumps(profile.symptoms),
         behavior=profile.behavior,
         tone=profile.tone,
         is_active=True
@@ -168,10 +160,6 @@ def start_session(profile: PatientProfile, db: DBSession = Depends(get_db)):
 
 @app.post("/session/end")
 def end_session(data: EndSession, db: DBSession = Depends(get_db)):
-    """
-    Before: sessions[id]["active"] = False in memory
-    Now: UPDATE is_active column in the database
-    """
     session = db.query(TherapySession).filter(TherapySession.id == data.session_id).first()
 
     if not session:
@@ -185,16 +173,11 @@ def end_session(data: EndSession, db: DBSession = Depends(get_db)):
 
 @app.post("/chat")
 def chat(data: ChatMessage, db: DBSession = Depends(get_db)):
-    """
-    Before: history was a list in memory
-    Now: each message is a separate row in the messages table
-    """
     session = db.query(TherapySession).filter(TherapySession.id == data.session_id).first()
 
     if not session:
         return {"error": "Session not found"}
 
-    # Save student's message to the database
     student_msg = Message(
         session_id=data.session_id,
         role="student",
@@ -203,17 +186,14 @@ def chat(data: ChatMessage, db: DBSession = Depends(get_db)):
     db.add(student_msg)
     db.commit()
 
-    # Fetch full conversation history from DB ordered by time
     all_messages = db.query(Message)\
         .filter(Message.session_id == data.session_id)\
         .order_by(Message.timestamp)\
         .all()
 
-    # Convert to format Groq expects
     history = [{"role": m.role, "message": m.message} for m in all_messages]
 
-    # Build system prompt from stored patient profile
-    symptoms_list = json.loads(session.symptoms)  
+    symptoms_list = json.loads(session.symptoms)
     system_prompt = f"""You are an AI patient.
 Age: {session.age}
 Symptoms: {symptoms_list}
@@ -224,7 +204,6 @@ Tone: {session.tone}"""
     if error:
         return {"error": error}
 
-    # Save AI patient's reply to the database
     patient_msg = Message(
         session_id=data.session_id,
         role="patient",
@@ -237,24 +216,48 @@ Tone: {session.tone}"""
 
 
 @app.post("/direct-chat")
-def direct_chat(data: DirectChat):
-    """Direct Groq call — bypasses session system, no changes needed here"""
+def direct_chat(data: DirectChat, db: DBSession = Depends(get_db)):
+    """Direct Groq call — saves messages to DB if session_id is provided"""
     reply, error = get_groq_response(data.messages, data.system_prompt)
     if error:
         return {"error": error}
+
+    # Save to DB if session_id provided
+    if data.session_id:
+        try:
+            # Save all messages from this turn (avoid duplicates by saving only last student message)
+            if data.messages:
+                last_msg = data.messages[-1]
+                # Only save if it's a student message (not the initial intro prompt)
+                if last_msg['role'] == 'student':
+                    student_msg = Message(
+                        session_id=data.session_id,
+                        role="student",
+                        message=last_msg['message']
+                    )
+                    db.add(student_msg)
+
+            # Always save patient reply
+            patient_msg = Message(
+                session_id=data.session_id,
+                role="patient",
+                message=reply
+            )
+            db.add(patient_msg)
+            db.commit()
+        except Exception as e:
+            # Don't fail the chat if DB save fails
+            print(f"DB save error: {e}")
+
     return {"reply": reply}
 
 
 def _generate_report(session_id: str, db: DBSession):
-    """
-    Shared helper used by both /report and /report/download.
-    Fetches history from DB, generates report via Groq, saves report to DB.
-    """
+    """Generate report from DB history and save to reports table"""
     session = db.query(TherapySession).filter(TherapySession.id == session_id).first()
     if not session:
         return None, "Session not found"
 
-    # Load full conversation history from the database
     all_messages = db.query(Message)\
         .filter(Message.session_id == session_id)\
         .order_by(Message.timestamp)\
@@ -286,7 +289,6 @@ Only return the JSON. No extra text, no markdown.
     if not report_data:
         return None, "Failed to parse report from AI response"
 
-    # Save the generated report to the database
     new_report = Report(
         session_id=session_id,
         scores_json=json.dumps(report_data["scores"]),
@@ -303,10 +305,6 @@ Only return the JSON. No extra text, no markdown.
 
 @app.get("/report/{session_id}")
 def get_report(session_id: str, db: DBSession = Depends(get_db)):
-    """
-    Before: pulled history from memory, generated report
-    Now: pulls history from DB, generates report, AND saves it to DB
-    """
     report_data, error = _generate_report(session_id, db)
     if error:
         return {"error": error}
@@ -315,23 +313,19 @@ def get_report(session_id: str, db: DBSession = Depends(get_db)):
 
 @app.get("/report/{session_id}/download")
 def download_report(session_id: str, db: DBSession = Depends(get_db)):
-    """Generate report and return as a downloadable PDF — data now comes from DB"""
     report_data, error = _generate_report(session_id, db)
     if error:
         return {"error": error}
 
-    # Build PDF in memory
     buffer = io.BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     y = height - 50
 
-    # Title
     pdf.setFont("Helvetica-Bold", 16)
     pdf.drawString(50, y, "MindTherapist Session Report")
     y -= 40
 
-    # Scores section
     pdf.setFont("Helvetica-Bold", 12)
     y = check_y(pdf, y, height)
     pdf.drawString(50, y, "Scores:")
@@ -342,7 +336,6 @@ def download_report(session_id: str, db: DBSession = Depends(get_db)):
         pdf.drawString(70, y, f"{key.capitalize()}: {value}/100")
         y -= 18
 
-    # Summary section
     y -= 10
     y = check_y(pdf, y, height)
     pdf.setFont("Helvetica-Bold", 12)
@@ -351,7 +344,6 @@ def download_report(session_id: str, db: DBSession = Depends(get_db)):
     pdf.setFont("Helvetica", 11)
     y = draw_wrapped_text(pdf, report_data["summary"], 70, y, height)
 
-    # Strengths section
     y -= 10
     y = check_y(pdf, y, height)
     pdf.setFont("Helvetica-Bold", 12)
@@ -361,7 +353,6 @@ def download_report(session_id: str, db: DBSession = Depends(get_db)):
     for item in report_data.get("strengths", []):
         y = draw_wrapped_text(pdf, f"- {item}", 70, y, height)
 
-    # Improvements section
     y -= 10
     y = check_y(pdf, y, height)
     pdf.setFont("Helvetica-Bold", 12)
@@ -371,7 +362,6 @@ def download_report(session_id: str, db: DBSession = Depends(get_db)):
     for item in report_data.get("improvements", []):
         y = draw_wrapped_text(pdf, f"- {item}", 70, y, height)
 
-    # Next Steps section
     y -= 10
     y = check_y(pdf, y, height)
     pdf.setFont("Helvetica-Bold", 12)
@@ -390,14 +380,8 @@ def download_report(session_id: str, db: DBSession = Depends(get_db)):
     )
 
 
-# ---- BONUS: New endpoint — only possible because of the database ----
-
 @app.get("/sessions/history")
 def get_all_sessions(db: DBSession = Depends(get_db)):
-    """
-    This was not possible before with in-memory storage.
-    Now we can see all sessions, when they were created, and message count.
-    """
     all_sessions = db.query(TherapySession).order_by(TherapySession.created_at.desc()).all()
     result = []
     for s in all_sessions:

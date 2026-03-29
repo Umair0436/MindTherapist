@@ -716,7 +716,7 @@
       const res = await fetch(`${API_BASE}/direct-chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages, system_prompt: systemPrompt })
+        body: JSON.stringify({ messages, system_prompt: systemPrompt, session_id: state.sessionId })
       });
       const data = await res.json();
       if (data.error) { showToast('Error: ' + data.error); return null; }
