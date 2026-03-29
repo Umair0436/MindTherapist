@@ -263,31 +263,32 @@ def _generate_report(session_id: str, db: DBSession):
         .order_by(Message.timestamp)\
         .all()
 
-    history = [{"role": m.role, "message": m.message} for m in all_messages]
+    if not all_messages:
+        return None, "No messages found for this session"
 
-    system_prompt = """You are an expert psychotherapy supervisor.
-Analyze the conversation and provide response in this exact JSON format:
-{
-    "scores": {
-        "overall": 0-100,
-        "rapport": 0-100,
-        "technique": 0-100,
-        "ethics": 0-100
-    },
-    "summary": "...",
-    "strengths": ["...", "..."],
-    "improvements": ["...", "..."],
-    "next_steps": "..."
-}
-Only return the JSON. No extra text, no markdown.
-"""
-    reply, error = get_groq_response(history, system_prompt)
+    # Build conversation as plain text
+    conv_text = "\n".join([f"{m.role.upper()}: {m.message}" for m in all_messages])
+
+    system_prompt = "You are an expert psychotherapy supervisor. Respond with ONLY a valid JSON object. No markdown, no explanation, no text before or after."
+
+    feedback_messages = [{
+        "role": "student",
+        "message": f'''Evaluate this psychotherapy session and return ONLY this raw JSON (no markdown, no backticks):
+{{"scores": {{"overall": 0, "rapport": 0, "technique": 0, "ethics": 0}}, "summary": "...", "strengths": ["..."], "improvements": ["..."], "next_steps": "..."}}
+
+Replace the 0s with honest scores from 0-100 based on the conversation below.
+
+CONVERSATION:
+{conv_text}'''
+    }]
+
+    reply, error = get_groq_response(feedback_messages, system_prompt)
     if error:
         return None, error
 
     report_data = extract_json_from_reply(reply)
     if not report_data:
-        return None, "Failed to parse report from AI response"
+        return None, f"Failed to parse: {reply[:200]}"
 
     new_report = Report(
         session_id=session_id,
