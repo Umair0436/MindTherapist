@@ -907,6 +907,12 @@ Return ONLY this raw JSON (no markdown, no backticks):
     document.getElementById('improveBtn').disabled = false;
     document.getElementById('startBtn').disabled = false;
     document.getElementById('statusBadge').innerHTML = '<div class="status-dot" style="background:#10B981;animation:none"></div> Session Complete';
+
+    // Save report to DB in background
+    if (state.sessionId) {
+      fetch(`${API_BASE}/report/${state.sessionId}`)
+        .catch(e => console.error('Report save error:', e));
+    }
   }
 
   function renderReport(f) {
