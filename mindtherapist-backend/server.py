@@ -290,13 +290,22 @@ CONVERSATION:
     if not report_data:
         return None, f"Failed to parse: {reply[:200]}"
 
+    # Handle both flat and nested scores format
+    if "scores" not in report_data:
+        report_data["scores"] = {
+            "overall": report_data.get("overall_score", report_data.get("overall", 65)),
+            "rapport": report_data.get("rapport_score", report_data.get("rapport", 65)),
+            "technique": report_data.get("technique_score", report_data.get("technique", 65)),
+            "ethics": report_data.get("ethics_score", report_data.get("ethics", 75)),
+        }
+
     new_report = Report(
         session_id=session_id,
         scores_json=json.dumps(report_data["scores"]),
-        summary=report_data["summary"],
+        summary=report_data.get("summary", ""),
         strengths=json.dumps(report_data.get("strengths", [])),
         improvements=json.dumps(report_data.get("improvements", [])),
-        next_steps=report_data["next_steps"]
+        next_steps=report_data.get("next_steps", "")
     )
     db.add(new_report)
     db.commit()
